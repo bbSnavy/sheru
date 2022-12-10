@@ -1,0 +1,18 @@
+[package]
+name = "sheru"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = [
+    "crates/sheru-cli",
+]
+
+[dependencies]
+sheru-cli = { path="./crates/sheru-cli"  }
+
+[[bin]]
+name = "sheru"
+path = "src/main.rs"
