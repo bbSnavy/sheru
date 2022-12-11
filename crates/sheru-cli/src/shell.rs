@@ -55,7 +55,7 @@ impl Shell {
 
             match stdin.read_line(&mut buf) {
                 Ok(0) => {
-                    break;
+                    return None;
                 }
                 Ok(_) => {
                     if let Some(v) = buf.strip_suffix('\n') {
@@ -153,6 +153,7 @@ impl Shell {
             match self.read_input() {
                 None => {
                     eprintln!("failed at reading input");
+                    break;
                 }
                 Some(lines) => {
                     self.process_input(lines);
