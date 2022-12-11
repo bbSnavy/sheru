@@ -1,7 +1,10 @@
-use std::io;
+use std::{env, io};
+use std::env::VarError;
 use std::io::{BufRead, Write};
-use std::process::{Command, Stdio};
+use std::path::Path;
+use std::process::{Command, exit, Stdio};
 use std::sync::Mutex;
+use is_executable::is_executable;
 
 pub struct Shell {
     isatty: Mutex<bool>,
@@ -109,14 +112,51 @@ impl Shell {
             }
         }
 
-        match Command::new(name)
-            .args(&args.clone()[1..])
-            .stdin(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .output() {
-            Ok(_) => {}
-            Err(_) => {}
+        if name == "exit" {
+            println!("exiting");
+            exit(0);
+        }
+
+        let mut paths = Vec::new();
+        paths.push(name.clone());
+        if let Ok(path_list) = env::var("PATH") {
+            for path_elem in path_list.split(':') {
+                let mut path_entry = String::new();
+                path_entry.push_str(path_elem);
+                path_entry.push('/');
+                path_entry.push_str(name.clone().as_str());
+                paths.push(path_entry);
+            }
+        }
+
+        paths = paths.iter()
+            .cloned()
+            .filter(|p| {
+                is_executable(Path::new(p))
+            })
+            .collect();
+
+        match paths.first() {
+            None => {
+                eprintln!("command not found");
+                self.flush();
+                return;
+            }
+            Some(v) => {
+                match Command::new(v)
+                    .args(&args.clone()[1..])
+                    .stdin(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .output() {
+                    Ok(_) => {
+
+                    },
+                    Err(_) => {
+                        eprintln!("failed at executing");
+                    }
+                }
+            }
         }
     }
 
@@ -152,7 +192,7 @@ impl Shell {
 
             match self.read_input() {
                 None => {
-                    eprintln!("failed at reading input");
+                    eprintln!("\nfailed at reading input");
                     break;
                 }
                 Some(lines) => {
